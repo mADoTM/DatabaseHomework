@@ -2,6 +2,7 @@ package ru.mail.dao;
 
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.*;
+import ru.mail.commons.FlywayInitializer;
 import ru.mail.commons.JDBCCredentials;
 import ru.mail.dto.entity.Company;
 
@@ -56,9 +57,14 @@ class CompanyDAOTest {
     }
 
     @BeforeEach
-    public void beforeAll() throws SQLException {
+    public void beforeEach() throws SQLException {
         connection = DriverManager.getConnection(CREDS.url(), CREDS.login(), CREDS.password());
         dao = new CompanyDAO(connection);
         connection.setAutoCommit(false);
+    }
+
+    @BeforeAll
+    public static void beforeAll() {
+        FlywayInitializer.initDb();
     }
 }

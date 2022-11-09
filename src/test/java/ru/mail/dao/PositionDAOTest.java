@@ -2,8 +2,10 @@ package ru.mail.dao;
 
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import ru.mail.commons.FlywayInitializer;
 import ru.mail.commons.JDBCCredentials;
 import ru.mail.dto.entity.Company;
 import ru.mail.dto.entity.Consingment;
@@ -183,13 +185,18 @@ class PositionDAOTest {
     }
 
     @BeforeEach
-    public void beforeAll() throws SQLException {
+    public void beforeEach() throws SQLException {
         connection = DriverManager.getConnection(CREDS.url(), CREDS.login(), CREDS.password());
         positionDAO = new PositionDAO(connection);
         connection.setAutoCommit(false);
         initDefaultProducts(new ProductDAO(connection));
         initDefaultCompanies(new CompanyDAO(connection));
         initDefaultConsingments(new ConsingmentDAO(connection));
+    }
+
+    @BeforeAll
+    public static void beforeAll() {
+        FlywayInitializer.initDb();
     }
 
     private void initDefaultConsingments(ConsingmentDAO dao) {

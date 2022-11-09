@@ -2,8 +2,10 @@ package ru.mail.dao;
 
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import ru.mail.commons.FlywayInitializer;
 import ru.mail.commons.JDBCCredentials;
 import ru.mail.dto.entity.Product;
 
@@ -59,9 +61,14 @@ class ProductDAOTest {
     }
 
     @BeforeEach
-    public void beforeAll() throws SQLException {
+    public void beforeEach() throws SQLException {
         connection = DriverManager.getConnection(CREDS.url(), CREDS.login(), CREDS.password());
         dao = new ProductDAO(connection);
         connection.setAutoCommit(false);
+    }
+
+    @BeforeAll
+    public static void beforeAll() {
+        FlywayInitializer.initDb();
     }
 }
