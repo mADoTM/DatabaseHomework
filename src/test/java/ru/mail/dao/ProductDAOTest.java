@@ -1,27 +1,20 @@
 package ru.mail.dao;
 
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import ru.mail.commons.DbConnectionHelper;
 import ru.mail.commons.FlywayInitializer;
-import ru.mail.commons.JDBCCredentials;
 import ru.mail.dto.entity.Product;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class ProductDAOTest {
-
-    private static final @NotNull JDBCCredentials CREDS = JDBCCredentials.DEFAULT;
-
     private ProductDAO dao;
 
-    private Connection connection;
 
     @Test
     void add() {
@@ -57,14 +50,13 @@ class ProductDAOTest {
 
     @AfterEach
     public void afterEach() throws SQLException {
-        connection.close();
+        DbConnectionHelper.closeConnection();
     }
 
     @BeforeEach
     public void beforeEach() throws SQLException {
-        connection = DriverManager.getConnection(CREDS.url(), CREDS.login(), CREDS.password());
-        dao = new ProductDAO(connection);
-        connection.setAutoCommit(false);
+        dao = new ProductDAO();
+        DbConnectionHelper.setAutoCommit(false);
     }
 
     @BeforeAll

@@ -1,20 +1,17 @@
 package ru.mail.dao;
 
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import ru.mail.commons.DbConnectionHelper;
 import ru.mail.commons.FlywayInitializer;
-import ru.mail.commons.JDBCCredentials;
 import ru.mail.dto.entity.Company;
 import ru.mail.dto.entity.Consingment;
 import ru.mail.dto.entity.Position;
 import ru.mail.dto.entity.Product;
 
-import java.sql.Connection;
 import java.sql.Date;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -24,13 +21,9 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 
 class PositionDAOTest {
-    private static final @NotNull JDBCCredentials CREDS = JDBCCredentials.DEFAULT;
-
     private PositionDAO positionDAO;
 
-    private Connection connection;
-
-    private final List<Product> products = List.of(
+    private static final List<Product> products = List.of(
             new Product(-1, "product name1"),
             new Product(-2, "product name2"),
             new Product(-3, "product name3"),
@@ -43,7 +36,7 @@ class PositionDAOTest {
             new Product(-10, "product name10")
     );
 
-    private final List<Company> companies = List.of(
+    private static final List<Company> companies = List.of(
             new Company(-1, "company name1", -1, -1),
             new Company(-2, "company name2", -2, -2),
             new Company(-3, "company name3", -3, -3),
@@ -57,7 +50,7 @@ class PositionDAOTest {
 
     );
 
-    private final List<Consingment> consingments = List.of(
+    private static final List<Consingment> consingments = List.of(
             new Consingment(-1, Date.valueOf("2022-8-11"), -1),
             new Consingment(-2, Date.valueOf("2022-8-11"), -2),
             new Consingment(-3, Date.valueOf("2022-8-11"), -3),
@@ -83,8 +76,8 @@ class PositionDAOTest {
         final var dbCompanies = positionDAO.getCompaniesWithProductsInPeriod(Date.valueOf("2022-8-10"), Date.valueOf("2022-8-11"));
         assertFalse(Collections.disjoint(companies, dbCompanies.keySet()));
 
-        for(var company : expectedMap.keySet()) {
-            for(var product : expectedMap.get(company)) {
+        for (var company : expectedMap.keySet()) {
+            for (var product : expectedMap.get(company)) {
                 assertTrue(dbCompanies.get(company).contains(product));
             }
         }
@@ -181,37 +174,36 @@ class PositionDAOTest {
 
     @AfterEach
     public void afterEach() throws SQLException {
-        connection.close();
+        DbConnectionHelper.closeConnection();
     }
 
     @BeforeEach
     public void beforeEach() throws SQLException {
-        connection = DriverManager.getConnection(CREDS.url(), CREDS.login(), CREDS.password());
-        positionDAO = new PositionDAO(connection);
-        connection.setAutoCommit(false);
-        initDefaultProducts(new ProductDAO(connection));
-        initDefaultCompanies(new CompanyDAO(connection));
-        initDefaultConsingments(new ConsingmentDAO(connection));
+        positionDAO = new PositionDAO();
+        DbConnectionHelper.setAutoCommit(false);
     }
 
     @BeforeAll
     public static void beforeAll() {
         FlywayInitializer.initDb();
+        initDefaultProducts(new ProductDAO());
+        initDefaultCompanies(new CompanyDAO());
+        initDefaultConsingments(new ConsingmentDAO());
     }
 
-    private void initDefaultConsingments(ConsingmentDAO dao) {
-        for(Consingment consingment : consingments) {
+    private static void initDefaultConsingments(ConsingmentDAO dao) {
+        for (Consingment consingment : consingments) {
             dao.save(consingment);
         }
     }
 
-    private void initDefaultProducts(ProductDAO dao) {
+    private static void initDefaultProducts(ProductDAO dao) {
         for (Product product : products) {
             dao.save(product);
         }
     }
 
-    private void initDefaultCompanies(CompanyDAO dao) {
+    private static void initDefaultCompanies(CompanyDAO dao) {
         for (Company company : companies) {
             dao.save(company);
         }
