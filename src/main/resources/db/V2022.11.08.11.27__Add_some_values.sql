@@ -10,7 +10,14 @@ INSERT INTO company (company_id, name, TIN, checking_account)
 VALUES (1, 'Vkontake EcoSystem', 123456, 4176812),
        (2, 'SBER MEGA MARKET', 9999, 999999),
        (3, 'Ozonzonzon', 303415, 123414),
-       (4, 'Mail.ru', 1312471, 1238915);
+       (4, 'Mail.ru', 1312471, 1238915),
+       (5, 'Huawei', 1512314, 1512368),
+       (6, 'Xiaomi', 1991237, 1758748),
+       (7, 'lu4shaya product company', 192194, 675838),
+       (8, 'New name', 1930149, 21347),
+       (9, 'Unknown', 10109239, 124757),
+       (10, 'JavaScript development', 124992, 149851),
+       (11, 'Funny name', 104912, 492140);
 
 INSERT INTO consingment (consingment_id, order_date, company_id)
 VALUES (1, '2014-09-16', 4),
