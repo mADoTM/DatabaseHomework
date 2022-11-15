@@ -2,23 +2,18 @@ package ru.mail.dao;
 
 import org.jetbrains.annotations.NotNull;
 import ru.mail.commons.DAO;
+import ru.mail.commons.DbConnectionHelper;
 import ru.mail.dto.entity.Company;
 
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.*;
 
 public final class CompanyDAO implements DAO<Company> {
-    private final @NotNull Connection connection;
-
-    public CompanyDAO(@NotNull Connection connection) {
-        this.connection = connection;
-    }
 
     @Override
     public @NotNull Company get(int id) {
-        try(var statement = connection.createStatement()) {
-            try(var resultSet = statement.executeQuery("SELECT company_id, name, TIN, checking_account FROM company WHERE company_id = " + id)) {
+        try (var statement = DbConnectionHelper.getConnection().createStatement()) {
+            try (var resultSet = statement.executeQuery("SELECT company_id, name, TIN, checking_account FROM company WHERE company_id = " + id)) {
                 if (resultSet.next()) {
                     return new Company(resultSet.getInt("company_id"),
                             resultSet.getString("name"),
@@ -35,7 +30,7 @@ public final class CompanyDAO implements DAO<Company> {
     @Override
     public @NotNull List<@NotNull Company> all() {
         final var result = new ArrayList<Company>();
-        try (var statement = connection.createStatement()) {
+        try (var statement = DbConnectionHelper.getConnection().createStatement()) {
             try (var resultSet = statement.executeQuery("SELECT * FROM company")) {
                 while (resultSet.next()) {
                     result.add(new Company(resultSet.getInt("company_id"),
@@ -53,7 +48,7 @@ public final class CompanyDAO implements DAO<Company> {
 
     @Override
     public void save(@NotNull Company entity) {
-        try (var preparedStatement = connection.prepareStatement("INSERT INTO company (company_id, name, TIN, checking_account) VALUES (?,?, ?, ?)")) {
+        try (var preparedStatement = DbConnectionHelper.getConnection().prepareStatement("INSERT INTO company (company_id, name, TIN, checking_account) VALUES (?,?, ?, ?)")) {
             preparedStatement.setInt(1, entity.companyId());
             preparedStatement.setString(2, entity.name());
             preparedStatement.setInt(3, entity.TIN());
@@ -66,7 +61,7 @@ public final class CompanyDAO implements DAO<Company> {
 
     @Override
     public void update(@NotNull Company entity) {
-        try(var preparedStatement = connection.prepareStatement("UPDATE company SET name = ?, TIN = ?, checking_account = ? WHERE company_id = ?")) {
+        try (var preparedStatement = DbConnectionHelper.getConnection().prepareStatement("UPDATE company SET name = ?, TIN = ?, checking_account = ? WHERE company_id = ?")) {
             preparedStatement.setString(1, entity.name());
             preparedStatement.setInt(2, entity.TIN());
             preparedStatement.setInt(3, entity.checkingAccount());
@@ -79,7 +74,7 @@ public final class CompanyDAO implements DAO<Company> {
 
     @Override
     public void delete(@NotNull Company entity) {
-        try(var preparedStatement = connection.prepareStatement("DELETE FROM company WHERE company_id = ?")) {
+        try (var preparedStatement = DbConnectionHelper.getConnection().prepareStatement("DELETE FROM company WHERE company_id = ?")) {
             preparedStatement.setInt(1, entity.companyId());
             if (preparedStatement.executeUpdate() == 0) {
                 throw new IllegalStateException("Record with id = " + entity.companyId() + " not found");
