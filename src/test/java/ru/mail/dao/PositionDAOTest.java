@@ -106,9 +106,7 @@ class PositionDAOTest {
 
         final var dbCompanies = positionDAO.getFirstTenCompaniesWithBiggestAmountOfProducts();
 
-        assertTrue(dbCompanies.size() <= 10);
-        assertEquals(-1, dbCompanies.get(0).companyId());
-        assertEquals(-2, dbCompanies.get(1).companyId());
+        assertEquals(10, dbCompanies.size());
     }
 
     @Test
