@@ -2,20 +2,18 @@ package ru.mail.dao;
 
 import org.jetbrains.annotations.NotNull;
 import ru.mail.commons.DAO;
+import ru.mail.commons.DbConnectionHelper;
 import ru.mail.dto.CompaniesWithAmountOfProductsReport;
 import ru.mail.dto.PerDayProductsReport;
 import ru.mail.dto.entity.Company;
 import ru.mail.dto.entity.Position;
 import ru.mail.dto.entity.Product;
 
-import java.sql.Connection;
 import java.sql.Date;
 import java.sql.SQLException;
 import java.util.*;
 
 public final class PositionDAO implements DAO<Position> {
-    private final @NotNull Connection connection;
-
     private final @NotNull String SELECT_PRODUCTS_WITH_AVERAGE_COST = """
             SELECT product.inner_code, product.name, t.by_one\s
                 FROM product,(SELECT position.inner_code, AVG((cost / amount)) as by_one\s
@@ -35,13 +33,14 @@ public final class PositionDAO implements DAO<Position> {
                        WHERE t.inner_code = product.inner_code""";
 
     private final @NotNull String SELECT_FIRST_TEN_COMPANIES_WITH_BIGGEST_AMOUNT = """
-            SELECT company.company_id, company.name, company.tin, company.checking_account, t.total\s
-                FROM company, (SELECT consingment.company_id, SUM(amount) as total from consingment
-                                    JOIN position ON consingment.consingment_id = position.consingment_id
-                                    GROUP BY company_id
-                                    LIMIT 10) as t
-                WHERE company.company_id = t.company_id
-                ORDER BY t.total DESC""";
+            SELECT company.company_id, company.name, company.tin, company.checking_account, t.total
+                            FROM company
+                            LEFT JOIN (SELECT consingment.company_id, SUM(amount) as total from consingment
+                                                JOIN position ON consingment.consingment_id = position.consingment_id
+                                                GROUP BY company_id) as t\s
+                            ON company.company_id = t.company_id
+                            ORDER BY t.total
+                            LIMIT 10""";
 
     private final @NotNull String SELECT_COMPANIES_WITH_AMOUNT_SATISFIED_CONDITION = """
             SELECT company.company_id, company.name, company.TIN, company.checking_account, t.inner_code, t.count\s
@@ -55,16 +54,11 @@ public final class PositionDAO implements DAO<Position> {
             SELECT company.company_id, company.name, company.TIN, company.checking_account, product.inner_code, product.name as product_name FROM consingment
                 LEFT JOIN position ON consingment.consingment_id = position.consingment_id AND order_date BETWEEN ? AND ?
                 LEFT JOIN product ON product.inner_code = position.inner_code
-                LEFT JOIN company ON consingment.company_id = company.company_id""";
-
-
-    public PositionDAO(@NotNull Connection connection) {
-        this.connection = connection;
-    }
+                RIGHT JOIN company ON consingment.company_id = company.company_id""";
 
     @Override
     public @NotNull Position get(int consingmentId) {
-        try (var statement = connection.createStatement()) {
+        try (var statement = DbConnectionHelper.getConnection().createStatement()) {
             try (var resultSet = statement.executeQuery("SELECT cost, inner_code, amount, consingment_id FROM position WHERE consingment_id = " + consingmentId)) {
                 if (resultSet.next()) {
                     return new Position(resultSet.getInt("cost"),
@@ -82,7 +76,7 @@ public final class PositionDAO implements DAO<Position> {
     @Override
     public @NotNull List<@NotNull Position> all() {
         final var result = new ArrayList<Position>();
-        try (var statement = connection.createStatement()) {
+        try (var statement = DbConnectionHelper.getConnection().createStatement()) {
             try (var resultSet = statement.executeQuery("SELECT * FROM position")) {
                 while (resultSet.next()) {
                     result.add(new Position(resultSet.getInt("cost"),
@@ -100,7 +94,7 @@ public final class PositionDAO implements DAO<Position> {
 
     @Override
     public void save(@NotNull Position entity) {
-        try (var preparedStatement = connection.prepareStatement("INSERT INTO position (cost, inner_code, amount, consingment_id) VALUES (?, ?, ?, ?)")) {
+        try (var preparedStatement = DbConnectionHelper.getConnection().prepareStatement("INSERT INTO position (cost, inner_code, amount, consingment_id) VALUES (?, ?, ?, ?)")) {
             preparedStatement.setInt(1, entity.cost());
             preparedStatement.setInt(2, entity.innerCode());
             preparedStatement.setInt(3, entity.amount());
@@ -113,7 +107,7 @@ public final class PositionDAO implements DAO<Position> {
 
     @Override
     public void update(@NotNull Position entity) {
-        try (var preparedStatement = connection.prepareStatement("UPDATE position SET cost = ?, amount = ? WHERE consingment_id = ? AND inner_code = ?")) {
+        try (var preparedStatement = DbConnectionHelper.getConnection().prepareStatement("UPDATE position SET cost = ?, amount = ? WHERE consingment_id = ? AND inner_code = ?")) {
             preparedStatement.setInt(1, entity.cost());
             preparedStatement.setInt(2, entity.amount());
             preparedStatement.setInt(3, entity.consingmentId());
@@ -126,7 +120,7 @@ public final class PositionDAO implements DAO<Position> {
 
     @Override
     public void delete(@NotNull Position entity) {
-        try (var preparedStatement = connection.prepareStatement("DELETE FROM position WHERE consingment_id = ? AND cost = ? AND amount = ? AND inner_code = ?")) {
+        try (var preparedStatement = DbConnectionHelper.getConnection().prepareStatement("DELETE FROM position WHERE consingment_id = ? AND cost = ? AND amount = ? AND inner_code = ?")) {
             preparedStatement.setInt(1, entity.consingmentId());
             preparedStatement.setInt(2, entity.cost());
             preparedStatement.setInt(3, entity.amount());
@@ -142,7 +136,7 @@ public final class PositionDAO implements DAO<Position> {
     public @NotNull Map<Product, Integer> getAverageProductCostInPeriod(Date from, Date to) {
         final var result = new HashMap<Product, Integer>();
 
-        try (var preparedStatement = connection.prepareStatement(SELECT_PRODUCTS_WITH_AVERAGE_COST)) {
+        try (var preparedStatement = DbConnectionHelper.getConnection().prepareStatement(SELECT_PRODUCTS_WITH_AVERAGE_COST)) {
             preparedStatement.setDate(1, from);
             preparedStatement.setDate(2, to);
             try (var resultSet = preparedStatement.executeQuery()) {
@@ -164,7 +158,7 @@ public final class PositionDAO implements DAO<Position> {
     public @NotNull PerDayProductsReport getPerDayProductsReportInPeriod(Date from, Date to) {
         final var result = new PerDayProductsReport();
 
-        try (var statement = connection.prepareStatement(SELECT_EVERY_DAY_PRODUCT_WITH_COUNT_AND_SUM)) {
+        try (var statement = DbConnectionHelper.getConnection().prepareStatement(SELECT_EVERY_DAY_PRODUCT_WITH_COUNT_AND_SUM)) {
             statement.setDate(1, from);
             statement.setDate(2, to);
             try (var resultSet = statement.executeQuery()) {
@@ -190,7 +184,7 @@ public final class PositionDAO implements DAO<Position> {
     public @NotNull List<Company> getFirstTenCompaniesWithBiggestAmountOfProducts() {
         List<Company> result = new ArrayList<>();
 
-        try (var statement = connection.createStatement()) {
+        try (var statement = DbConnectionHelper.getConnection().createStatement()) {
             try (var resultSet = statement.executeQuery(SELECT_FIRST_TEN_COMPANIES_WITH_BIGGEST_AMOUNT)) {
                 while (resultSet.next()) {
                     result.add(new Company(resultSet.getInt("company_id"),
@@ -208,7 +202,7 @@ public final class PositionDAO implements DAO<Position> {
     public @NotNull CompaniesWithAmountOfProductsReport getCompaniesWithAmountSatisfiedCondition(Map<Product, Integer> products) {
         final var result = new CompaniesWithAmountOfProductsReport();
 
-        try (var statement = connection.createStatement()) {
+        try (var statement = DbConnectionHelper.getConnection().createStatement()) {
             try (var resultSet = statement.executeQuery(SELECT_COMPANIES_WITH_AMOUNT_SATISFIED_CONDITION)) {
                 while (resultSet.next()) {
                     final var dbInnerCode = resultSet.getInt("inner_code");
@@ -239,7 +233,7 @@ public final class PositionDAO implements DAO<Position> {
     public @NotNull Map<Company, Set<Product>> getCompaniesWithProductsInPeriod(Date from, Date to) {
         final var result = new HashMap<Company, Set<Product>>();
 
-        try (var statement = connection.prepareStatement(SELECT_COMPANIES_WITH_PRODUCTS_IN_PERIOD)) {
+        try (var statement = DbConnectionHelper.getConnection().prepareStatement(SELECT_COMPANIES_WITH_PRODUCTS_IN_PERIOD)) {
             statement.setDate(1, from);
             statement.setDate(2, to);
             try (var resultSet = statement.executeQuery()) {
